@@ -14,6 +14,7 @@
 
 from util import manhattanDistance
 from game import Directions
+from operator import itemgetter
 import random, util
 
 from game import Agent
@@ -44,6 +45,7 @@ class ReflexAgent(Agent):
         # Choose one of the best actions
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
         bestScore = max(scores)
+        # print "Best Score " , bestScore;
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
         chosenIndex = random.choice(bestIndices) # Pick randomly among the best
 
@@ -73,8 +75,44 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
+        
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        
+
+        score = 0;
+        x, y = newPos;
+        ghostListPosDistance = [];
+        foodListPosDistance = [];
+
+        for ghostPos in newGhostStates:
+          ghostx,ghosty = ghostPos.getPosition()
+          if ghostPos.scaredTimer == 0:
+            ghostListPosDistance.append(((ghostx,ghosty), manhattanDistance((x,y),(ghostx,ghosty))))
+        ghostListPosDistanceSorted = sorted(ghostListPosDistance, key = itemgetter(1));
+
+        for foodPellet in newFood.asList():
+          foodx, foody = foodPellet;
+          foodListPosDistance.append(((foodx,foody), manhattanDistance((x,y),(foodx,foody))))
+        foodListPosDistanceSorted = sorted(foodListPosDistance, key = itemgetter(1));
+
+        if len(foodListPosDistanceSorted) > 0:
+          minFoodDistance = foodListPosDistanceSorted[0][1]; #Contains Tuple ((Foodx, Foody) distance)
+        else:
+          minFoodDistance = 0;
+
+        numFoodPellets = successorGameState.getNumFood();
+
+        for ghost in newGhostStates:
+          ghostx, ghosty = ghost.getPosition();
+          distance = manhattanDistance((x,y), (ghostx,ghosty))
+          if ghost.scaredTimer > distance:
+            score += ghost.scaredTimer - distance;
+
+        if len(ghostListPosDistance) > 0:
+          score += ghostListPosDistanceSorted[0][1];
+
+        finalscore = score -10*numFoodPellets - minFoodDistance;
+        return finalscore
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -135,6 +173,10 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
+
+        # Need to have helper functions to define min, max, and evaluation of that
+
+
         util.raiseNotDefined()
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -172,7 +214,48 @@ def betterEvaluationFunction(currentGameState):
       DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    successorGameState = currentGameState.generatePacmanSuccessor(action)
+    newPos = successorGameState.getPacmanPosition()
+    newFood = successorGameState.getFood()
+    newGhostStates = successorGameState.getGhostStates()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    
+
+    score = 0;
+    x, y = newPos;
+    ghostListPosDistance = [];
+    foodListPosDistance = [];
+
+    for ghostPos in newGhostStates:
+      ghostx,ghosty = ghostPos.getPosition()
+      if ghostPos.scaredTimer == 0:
+        ghostListPosDistance.append(((ghostx,ghosty), manhattanDistance((x,y),(ghostx,ghosty))))
+    ghostListPosDistanceSorted = sorted(ghostListPosDistance, key = itemgetter(1));
+
+    for foodPellet in newFood.asList():
+      foodx, foody = foodPellet;
+      foodListPosDistance.append(((foodx,foody), manhattanDistance((x,y),(foodx,foody))))
+    foodListPosDistanceSorted = sorted(foodListPosDistance, key = itemgetter(1));
+
+    if len(foodListPosDistanceSorted) > 0:
+      minFoodDistance = foodListPosDistanceSorted[0][1]; #Contains Tuple ((Foodx, Foody) distance)
+    else:
+      minFoodDistance = 0;
+
+    numFoodPellets = successorGameState.getNumFood();
+
+    for ghost in newGhostStates:
+      ghostx, ghosty = ghost.getPosition();
+      distance = manhattanDistance((x,y), (ghostx,ghosty))
+      if ghost.scaredTimer > distance:
+        score += ghost.scaredTimer - distance;
+
+    if len(ghostListPosDistance) > 0:
+      score += ghostListPosDistanceSorted[0][1];
+
+    finalscore = score -10*numFoodPellets - minFoodDistance;
+    return finalscore
 
 # Abbreviation
 better = betterEvaluationFunction
