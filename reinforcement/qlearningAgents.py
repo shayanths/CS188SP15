@@ -42,7 +42,7 @@ class QLearningAgent(ReinforcementAgent):
         "You can initialize Q-values here..."
         ReinforcementAgent.__init__(self, **args)
 
-        "*** YOUR CODE HERE ***"
+        self.states = util.Counter();
 
     def getQValue(self, state, action):
         """
@@ -51,8 +51,8 @@ class QLearningAgent(ReinforcementAgent):
           or the Q node value otherwise
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
+        qValue = self.states[(state,action)];
+        return qValue;
 
     def computeValueFromQValues(self, state):
         """
@@ -62,7 +62,17 @@ class QLearningAgent(ReinforcementAgent):
           terminal state, you should return a value of 0.0.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        value = float("-inf");
+        for action in self.getLegalActions(state):
+          qValue = self.getQValue(state,action);
+          if qValue > value:
+            value = qValue;
+
+        if (value == float("-inf")):
+          value = 0.0
+          return value;
+        else:
+          return value;
 
     def computeActionFromQValues(self, state):
         """
@@ -71,7 +81,20 @@ class QLearningAgent(ReinforcementAgent):
           you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        action = []; #Different from the other computeAction, as there can be many best Actions
+        value = float("-inf");
+        for newAction in self.getLegalActions(state):
+          qValue = self.getQValue(state,newAction);
+          if qValue > value:
+            value = qValue;
+            action = [newAction];
+          elif qValue == value: #Randomly choose the action if there are more than one equal valued actions
+            action.append(newAction);
+        if len(action) > 0:
+          bestAction = random.choice(action);
+          return bestAction;
+        else:
+          return None
 
     def getAction(self, state):
         """
@@ -88,10 +111,10 @@ class QLearningAgent(ReinforcementAgent):
         legalActions = self.getLegalActions(state)
         action = None
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
-        return action
-
+        if util.flipCoin(self.epsilon):
+          return random.choice(legalActions);
+        else:
+          return self.computeActionFromQValues(state);
     def update(self, state, action, nextState, reward):
         """
           The parent class calls this to observe a
@@ -102,8 +125,11 @@ class QLearningAgent(ReinforcementAgent):
           it will be called on your behalf
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        currentQValue = self.getQValue(state,action);
+        futureQValue = self.computeValueFromQValues(nextState);
+        difference = reward + self.discount*futureQValue;
 
+        self.states[(state,action)] = (1-self.alpha)*currentQValue + self.alpha * difference;
     def getPolicy(self, state):
         return self.computeActionFromQValues(state)
 
@@ -165,14 +191,19 @@ class ApproximateQAgent(PacmanQAgent):
           where * is the dotProduct operator
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
+        featuresVector = self.featExtractor.getFeatures(state,action);
+        qValue = self.weights * featuresVector;
+        return qValue;
     def update(self, state, action, nextState, reward):
         """
            Should update your weights based on transition
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        currentQValue = self.getQValue(state,action);
+        futureQValue = self.computeValueFromQValues(nextState);
+        difference = reward + self.discount*futureQValue - currentQValue;
+        featuresVector = self.featExtractor.getFeatures(state,action);
+        for feature in featuresVector.keys():
+          self.weights[feature] = self.weights[feature] + (self.alpha * difference * featuresVector[feature]);
 
     def final(self, state):
         "Called at the end of each game."
