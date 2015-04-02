@@ -163,4 +163,43 @@ class GreedyBustersAgent(BustersAgent):
             [beliefs for i, beliefs in enumerate(self.ghostBeliefs)
              if livingGhosts[i+1]]
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        
+        closed_set = []; # Keep list of tuple (possible_position possible_distance) of ghost positions and distances
+        for observations in livingGhostPositionDistributions:
+            possible_distance = None;
+            possible_position = 0;
+            bestKey = 0;
+            for keys in observations.keys():
+                if observations[keys] > bestKey:
+                    bestKey = observations[keys];
+                    possible_distance = self.distancer.getDistance(pacmanPosition,keys);
+                    possible_position = keys;
+            closed_set.append((possible_position,possible_distance));
+        # We compiled all of the ghosts, now we need to find the closest likely ghost. 
+        closest_ghost = None;
+        for possible_ghost in closed_set:
+            pos, distance = possible_ghost;
+            updated_distance = float("inf");
+            if updated_distance > distance:
+                closest_ghost = pos;
+
+        # We should combine the two for loops above in order to improve speed. 
+            # We can keep track of closest_ghost overall and distance on each passthrough
+
+        #Now that we kow where the closest_ghost is, we need to find the best move to take.
+        #based on cost which is the distance of the next Position of Pacman and the ghost
+        best_action = None;
+        cost = float("inf");
+
+        for action in legal:
+            successorPosition = Actions.getSuccessor(pacmanPosition, action);
+            if self.distancer.getDistance(successorPosition,closest_ghost) < cost:
+                best_action = action;
+                cost = self.distancer.getDistance(successorPosition, closest_ghost);
+
+        return best_action
+
+
+
+

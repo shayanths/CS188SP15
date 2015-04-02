@@ -148,20 +148,20 @@ class ExactInference(InferenceModule):
         emissionModel = busters.getObservationDistribution(noisyDistance)
         pacmanPosition = gameState.getPacmanPosition()
 
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
 
-        # Replace this code with a correct observation update
-        # Be sure to handle the "jail" edge case where the ghost is eaten
-        # and noisyDistance is None
         allPossible = util.Counter()
-        for p in self.legalPositions:
-            trueDistance = util.manhattanDistance(p, pacmanPosition)
-            if emissionModel[trueDistance] > 0:
-                allPossible[p] = 1.0
-
+        "*** YOUR CODE HERE ***"
+        if noisyDistance == None: # Case when Ghost is captured
+            # We need to increase the JailCount by 1 
+            # set JailCount location to 1, because the ghost has been captured
+            # set beliefs to the JailCounter
+            allPossible[self.getJailPosition()] = 1.0;
+        else:
+            # Similar to the example they gave us, execept we need to factor in beliefs.
+            for p in self.legalPositions:
+                 trueDistance = util.manhattanDistance(p, pacmanPosition);
+                 allPossible[p] = emissionModel[trueDistance] * self.beliefs[p];
         "*** END YOUR CODE HERE ***"
-
         allPossible.normalize()
         self.beliefs = allPossible
 
@@ -219,7 +219,13 @@ class ExactInference(InferenceModule):
         positions after a time update from a particular position.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        update_beliefs = util.Counter();
+        for p in self.legalPositions:
+            newPostDist = self.getPositionDistribution(self.setGhostPosition(gameState,p))
+            belief_p = self.beliefs[p];
+            for new_p in newPostDist.keys():
+                update_beliefs[new_p]  = update_beliefs[new_p] + belief_p*newPostDist[new_p];
+        self.beliefs = update_beliefs;
 
     def getBeliefDistribution(self):
         return self.beliefs
@@ -255,6 +261,19 @@ class ParticleFilter(InferenceModule):
         """
         "*** YOUR CODE HERE ***"
 
+        particles_uniform = [];
+
+        num_particles = self.numParticles
+        legal_positions = self.legalPositions
+        while num_particles > 0:
+            if num_particles > len(legal_positions):
+                particles_uniform = particles_uniform + legal_positions;
+                num_particles = num_particles - len(legal_positions);
+            else:
+                particles_uniform = particles_uniform + legal_positions[0:num_particles-1];
+                break;
+        self.particles = particles_uniform;
+
     def observe(self, observation, gameState):
         """
         Update beliefs based on the given distance observation. Make sure to
@@ -286,7 +305,28 @@ class ParticleFilter(InferenceModule):
         emissionModel = busters.getObservationDistribution(noisyDistance)
         pacmanPosition = gameState.getPacmanPosition()
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        allPossible = util.Counter()
+        "*** YOUR CODE HERE ***"
+        if noisyDistance == None: # Case when Ghost is captured
+            allPossible = util.Counter()
+            # We need to increase the JailCount by 1 
+            # set JailCount location to 1, because the ghost has been captured
+            # set beliefs to the JailCounter
+            allPossible[self.getJailPosition()] = 1.0;
+        else:
+            # Similar to the example they gave us, execept we need to factor in beliefs.
+            for p in self.particles:
+                 trueDistance = util.manhattanDistance(p, pacmanPosition);
+                 allPossible[p] = allPossible[p] + emissionModel[trueDistance];
+        self.beliefs = allPossible;
+
+        if self.beliefs.totalCount() == 0:
+            self.initializeUniformly(gameState);
+        else:
+            self.beliefs.normalize;
+            for x in range(len(self.particles)):
+                update_position = util.sample(self.beliefs);
+                self.particles[x] = update_position;
 
     def elapseTime(self, gameState):
         """
@@ -303,8 +343,10 @@ class ParticleFilter(InferenceModule):
         a belief distribution.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
+        for i in range(len(self.particles)):
+            p = self.particles[i]
+            newPosDist = self.getPositionDistribution(self.setGhostPosition(gameState, p))
+            self.particles[i] = util.sample(newPosDist)
     def getBeliefDistribution(self):
         """
         Return the agent's current belief state, a distribution over ghost
@@ -313,7 +355,11 @@ class ParticleFilter(InferenceModule):
         Counter object)
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        distribution = util.Counter()
+        for particles in  self.particles:
+            distribution[particles] += 1
+        distribution.normalize()
+        return distribution
 
 class MarginalInference(InferenceModule):
     """
@@ -499,8 +545,13 @@ class JointParticleFilter:
         self.particles = newParticles
 
     def getBeliefDistribution(self):
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        
+        distribution = util.Counter()
+        for particles in  self.particles:
+            distribution[particles] += 1
+        distribution.normalize()
+        return distribution
+
 
 # One JointInference module is shared globally across instances of MarginalInference
 jointInference = JointParticleFilter()
